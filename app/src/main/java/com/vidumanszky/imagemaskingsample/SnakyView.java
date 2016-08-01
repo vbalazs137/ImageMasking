@@ -23,10 +23,10 @@ import java.util.Random;
  */
 public class SnakyView extends View implements GestureDetector.OnGestureListener {
 
-    private static final int SNAKE_LENGTH_DEFAULT = 5;
+    private static final int SNAKE_LENGTH_DEFAULT = 15;
 
     //TODO: change it to speed!
-    private static final int SNAKE_SPEED = 150;
+    private static final int SNAKE_SPEED = 155550;
 
     private static final int SNAKE_RIGHT = 0;
     private static final int SNAKE_UP = 1;
@@ -68,7 +68,6 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
     private GestureDetectorCompat detector;
     private int snakeDirection;
 
-    private Handler snakeHandler;
     private boolean isRunning;
     private int speedIndex;
 
@@ -102,12 +101,11 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
         snakePaint = new Paint();
         snakePaint.setColor(Color.BLACK);
 
+        //food has to be have a hole
         foodPaint = new Paint();
         foodPaint.setColor(Color.BLACK);
 
         detector = new GestureDetectorCompat(context, this);
-
-        snakeHandler = new Handler();
     }
 
     private void reset() {
@@ -129,8 +127,6 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        clearCanvas(canvas);
-
         drawBorder(canvas);
 
         drawSnake(canvas);
@@ -142,10 +138,6 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
     public boolean onTouchEvent(MotionEvent event) {
         this.detector.onTouchEvent(event);
         return true;
-    }
-
-    private void clearCanvas(Canvas canvas) {
-        canvas.drawColor(Color.WHITE);
     }
 
     //TODO: onMeasure!!
@@ -276,6 +268,7 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
                             }
                         }
 
+                        Log.d("SNAKY_REF", "postInvalidate");
                         postInvalidate();
 
                     }
@@ -284,8 +277,6 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
                         speedIndex = 0;
                     }
                     ++speedIndex;
-
-                    Log.d("SNAKY_REF", "speedIndex" + speedIndex);
                 }
             }
         }).start();
