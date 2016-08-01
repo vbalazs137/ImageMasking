@@ -6,8 +6,10 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.support.v4.view.GestureDetectorCompat;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -24,7 +26,7 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
     private static final int SNAKE_LENGTH_DEFAULT = 5;
 
     //TODO: change it to speed!
-    private static final int SNAKE_SLEEP = 75;
+    private static final int SNAKE_SPEED = 150;
 
     private static final int SNAKE_RIGHT = 0;
     private static final int SNAKE_UP = 1;
@@ -36,7 +38,6 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
     private Paint borderPaint;
     private Paint snakePaint;
     private Paint foodPaint;
-    private Paint clearPaint;
 
     private int rectWidth;
     private int snakeLength;
@@ -65,52 +66,36 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
     private boolean isFoodEaten = true;
 
     private GestureDetectorCompat detector;
-    private float clickX;
-    private float clickY;
     private int snakeDirection;
 
     private Handler snakeHandler;
     private boolean isRunning;
-    private boolean isStopped = true;
+    private int speedIndex;
 
     public SnakyView(Context context, AttributeSet attrs) {
         super(context, attrs);
         this.context = context;
 
         init();
-    }
 
-    public void resume() {
-        snakeHandler = new Handler();
-        if (isStopped) {
-            start();
-        }
+        reset();
 
-        snakeHandler.postDelayed(runnable, 0);
-        isRunning = true;
-    }
-
-    public void pause() {
-        snakeHandler.removeCallbacks(runnable);
-        isRunning = false;
+        start();
     }
 
     public void start() {
-        init();
-        isStopped = false;
+        isRunning = true;
+        loop();
+        reset();
     }
 
     public void stop() {
-        pause();
-        isStopped = true;
+        isRunning = false;
+
+        Log.d("SNAKY_REF", "removeCallbacks");
     }
 
     private void init() {
-        snakeHandler = new Handler();
-
-        clearPaint = new Paint();
-        clearPaint.setColor(Color.WHITE);
-
         borderPaint = new Paint();
         borderPaint.setColor(Color.BLACK);
 
@@ -122,6 +107,11 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
 
         detector = new GestureDetectorCompat(context, this);
 
+        snakeHandler = new Handler();
+    }
+
+    private void reset() {
+        borderList = new ArrayList<>();
         snakeList = new ArrayList<>();
 
         snakeLeft = 0;
@@ -132,8 +122,6 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
         snakeDirection = SNAKE_RIGHT;
 
         snakeLength = SNAKE_LENGTH_DEFAULT;
-
-        invalidate();
     }
 
     //TODO: if its dimensions changing in runningTime
@@ -141,9 +129,9 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        drawBorder(canvas);
-
         clearCanvas(canvas);
+
+        drawBorder(canvas);
 
         drawSnake(canvas);
 
@@ -157,72 +145,69 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
     }
 
     private void clearCanvas(Canvas canvas) {
-        //TODO: canvas clear
-        canvas.drawRect(areaLeft, areaTop, areaRight, areaBottom, clearPaint);
+        canvas.drawColor(Color.WHITE);
     }
 
     //TODO: onMeasure!!
     private void drawBorder(Canvas canvas) {
-        if (borderList == null) {
-            borderList = new ArrayList<>();
-        }
+        if (borderList.size() == 0) {
+            int canvasWidth = canvas.getWidth();
+            int canvasHeight = canvas.getHeight();
 
-        int canvasWidth = canvas.getWidth();
-        int canvasHeight = canvas.getHeight();
+            rectWidth = canvasWidth / 40;
 
-        rectWidth = canvasWidth / 20;
+            int borderLeft = 0;
+            int borderTop = 0;
+            int borderRight = rectWidth;
+            int borderBottom = rectWidth;
 
-        int borderLeft = 0;
-        int borderTop = 0;
-        int borderRight = rectWidth;
-        int borderBottom = rectWidth;
+            for (int i = 0; i<4; i++) {
 
-        for (int i = 0; i<4; i++) {
+                while(true) {
+                    Rect currentBorderItem = new Rect(borderLeft, borderTop, borderRight, borderBottom);
 
-            while(true) {
-                Rect currentBorderItem = new Rect(borderLeft, borderTop, borderRight, borderBottom);
+                    borderList.add(currentBorderItem);
 
-                borderList.add(currentBorderItem);
-
-                if (i == 0) {
-                    if (borderBottom + rectWidth < canvasHeight) {
-                        borderTop = borderTop + rectWidth;
-                        borderBottom = borderBottom + rectWidth;
-                    } else {
-                        areaBottom = borderTop;
-                        break;
-                    }
-                } else if (i == 1) {
-                    if (borderRight + rectWidth < canvasWidth) {
-                        borderRight = borderRight + rectWidth;
-                        borderLeft = borderLeft + rectWidth;
-                    } else {
-                        areaRight = borderLeft;
-                        break;
-                    }
-                } else if (i == 2) {
-                    if (borderTop - rectWidth >= 0) {
-                        borderTop = borderTop - rectWidth;
-                        borderBottom = borderBottom - rectWidth;
-                    } else {
-                        areaTop = borderBottom;
-                        break;
-                    }
-                } else if (i == 3) {
-                    if (borderLeft - rectWidth >= 0) {
-                        borderRight = borderRight - rectWidth;
-                        borderLeft = borderLeft - rectWidth;
-                    } else {
-                        areaLeft = borderRight;
-                        break;
+                    if (i == 0) {
+                        if (borderBottom + rectWidth < canvasHeight) {
+                            borderTop = borderTop + rectWidth;
+                            borderBottom = borderBottom + rectWidth;
+                        } else {
+                            areaBottom = borderTop;
+                            break;
+                        }
+                    } else if (i == 1) {
+                        if (borderRight + rectWidth < canvasWidth) {
+                            borderRight = borderRight + rectWidth;
+                            borderLeft = borderLeft + rectWidth;
+                        } else {
+                            areaRight = borderLeft;
+                            break;
+                        }
+                    } else if (i == 2) {
+                        if (borderTop - rectWidth >= 0) {
+                            borderTop = borderTop - rectWidth;
+                            borderBottom = borderBottom - rectWidth;
+                        } else {
+                            areaTop = borderBottom;
+                            break;
+                        }
+                    } else if (i == 3) {
+                        if (borderLeft - rectWidth >= 0) {
+                            borderRight = borderRight - rectWidth;
+                            borderLeft = borderLeft - rectWidth;
+                        } else {
+                            areaLeft = borderRight;
+                            break;
+                        }
                     }
                 }
             }
+
+            initCenter();
         }
 
         drawRects(borderList, canvas, borderPaint);
-
-        initCenter();
     }
 
     private void initCenter() {
@@ -272,24 +257,39 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
         }
     }
 
-    private Runnable runnable = new Runnable() {
-        @Override
-        public void run() {
-            calSnakePos();
+    private void loop() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                //TODO: why is that?
+                SystemClock.sleep(200);
 
-            if (isRunning) {
-                snakeList.add(currentSnakeRect);
+                while (isRunning) {
+                    if (speedIndex % SNAKE_SPEED == 0) {
+                        calSnakePos();
 
-                if (snakeList.size() >= snakeLength) {
-                    snakeList.remove(0);
+                        if (isRunning) {
+                            snakeList.add(currentSnakeRect);
+
+                            if (snakeList.size() >= snakeLength) {
+                                snakeList.remove(0);
+                            }
+                        }
+
+                        postInvalidate();
+
+                    }
+
+                    if (speedIndex > 200000) {
+                        speedIndex = 0;
+                    }
+                    ++speedIndex;
+
+                    Log.d("SNAKY_REF", "speedIndex" + speedIndex);
                 }
-
-                snakeHandler.postDelayed(this, SNAKE_SLEEP);
             }
-
-            invalidate();
-        }
-    };
+        }).start();
+    }
 
     private void calSnakePos() {
         if (snakeLeft == 0 && snakeTop == 0 && snakeRight == 0 && snakeBottom == 0) {
@@ -355,10 +355,7 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
 
     @Override
     public boolean onDown(MotionEvent e) {
-        clickX = e.getX();
-        clickY = e.getY();
-
-        return true;
+        return false;
     }
 
     @Override
@@ -368,20 +365,6 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
 
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
-        float endX = e.getX();
-        float endY = e.getY();
-
-        if (isAClick(endX, endY)) {
-
-            if (isRunning) {
-                pause();
-            } else {
-                resume();
-            }
-
-            return true;
-        }
-
         return false;
     }
 
@@ -400,47 +383,61 @@ public class SnakyView extends View implements GestureDetector.OnGestureListener
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
         if (isRunning) {
             int snakeDirection;
-            if (Math.abs(velocityX) >= 1.5 * Math.abs(velocityY)) {
+            if (Math.abs(velocityX) >= 1.2 * Math.abs(velocityY)) {
+
+                Log.d("SNAKY_SWIPE", "velocityX > 1.2");
+
                 if (velocityX < 0.0) {
+
+                    Log.d("SNAKY_SWIPE", "velocityX < 0");
+
                     snakeDirection = SNAKE_LEFT;
                 } else {
+
+                    Log.d("SNAKY_SWIPE", "velocityX >= 0");
+
                     snakeDirection = SNAKE_RIGHT;
                 }
             } else {
+
+                Log.d("SNAKY_SWIPE", "velocityX <= 1.2");
+
                 if (velocityY < 0.0) {
+
+                    Log.d("SNAKY_SWIPE", "velocityY < 0");
+
                     snakeDirection = SNAKE_UP;
                 } else {
+
+                    Log.d("SNAKY_SWIPE", "velocityY >= 0");
+
                     snakeDirection = SNAKE_DOWN;
                 }
             }
 
+            Log.d("SNAKY_SWIPE", "snakeDirection: "+snakeDirection);
+
             if (this.snakeDirection == SNAKE_LEFT && snakeDirection == SNAKE_UP || this.snakeDirection == SNAKE_LEFT && snakeDirection == SNAKE_DOWN) {
                 this.snakeDirection = snakeDirection;
+                speedIndex = SNAKE_SPEED;
             }
 
             if (this.snakeDirection == SNAKE_RIGHT && snakeDirection == SNAKE_UP || this.snakeDirection == SNAKE_RIGHT && snakeDirection == SNAKE_DOWN) {
                 this.snakeDirection = snakeDirection;
+                speedIndex = SNAKE_SPEED;
             }
 
             if (this.snakeDirection == SNAKE_UP && snakeDirection == SNAKE_LEFT || this.snakeDirection == SNAKE_UP && snakeDirection == SNAKE_RIGHT) {
                 this.snakeDirection = snakeDirection;
+                speedIndex = SNAKE_SPEED;
             }
 
             if (this.snakeDirection == SNAKE_DOWN && snakeDirection == SNAKE_LEFT || this.snakeDirection == SNAKE_DOWN && snakeDirection == SNAKE_RIGHT) {
                 this.snakeDirection = snakeDirection;
+                speedIndex = SNAKE_SPEED;
             }
             return true;
         }
         return false;
-    }
-
-    private boolean isAClick(float endX, float endY) {
-        float differenceX = Math.abs(clickX - endX);
-        float differenceY = Math.abs(clickY - endY);
-
-        if (differenceX > 5 ||differenceY > 5) {
-            return false;
-        }
-        return true;
     }
 }
