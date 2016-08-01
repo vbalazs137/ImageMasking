@@ -55,7 +55,7 @@ public class PathRendererView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         int action = event.getAction();
-        
+
         switch (action) {
             case MotionEvent.ACTION_MOVE:
                 posX = event.getX();

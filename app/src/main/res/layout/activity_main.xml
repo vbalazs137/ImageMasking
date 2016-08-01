@@ -12,6 +12,18 @@
     <com.vidumanszky.imagemaskingsample.PathRendererView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/pathView"/>
+        android:id="@+id/pathView"
+        android:visibility="gone"/>
+
+    <com.vidumanszky.imagemaskingsample.HexagonView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/hexagonView"
+        android:visibility="gone"/>
+
+    <com.vidumanszky.imagemaskingsample.SnakyView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/snakyView"/>
 
 </RelativeLayout>
